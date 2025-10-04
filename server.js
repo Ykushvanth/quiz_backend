@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
-const Database = require("better-sqlite3");
+const fs = require("fs");
+const initSqlJs = require("sql.js");
 const app = express();
 const { registerQuestions } = require("./questions");
 
@@ -10,12 +11,40 @@ const dbPath = path.join(__dirname, "quiz_questions.db");
 
 let db = null;
 
-const initializeDBAndServer = () => {
+const initializeDBAndServer = async () => {
   try {
-    db = new Database(dbPath);
-    db.pragma("journal_mode = WAL");
+    const SQL = await initSqlJs();
+    
+    let dbData;
+    if (fs.existsSync(dbPath)) {
+      dbData = fs.readFileSync(dbPath);
+    } else {
+      console.log("Database file not found, creating new one");
+      dbData = new Uint8Array(0);
+    }
+    
+    db = new SQL.Database(dbData);
     
     registerQuestions(app, db);
+
+    const saveDatabase = () => {
+      try {
+        const data = db.export();
+        fs.writeFileSync(dbPath, data);
+      } catch (e) {
+        console.log(`Error saving database: ${e.message}`);
+      }
+    };
+
+    process.on('SIGINT', () => {
+      saveDatabase();
+      process.exit(0);
+    });
+
+    process.on('SIGTERM', () => {
+      saveDatabase();
+      process.exit(0);
+    });
 
     const port = process.env.PORT || 3001;
     app.listen(port, () => {

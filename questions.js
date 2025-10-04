@@ -6,21 +6,28 @@ function registerQuestions(app, db) {
       
       if (sessionId) {
         const seed = parseInt(sessionId) + parseInt(quizId);
-        const questions = db.prepare(
-          `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ? ORDER BY (id * ?) % 1000`
-        ).all(quizId, seed);
+        const questions = db.exec(
+          `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ${quizId} ORDER BY (id * ${seed}) % 1000`
+        )[0]?.values?.map(row => ({
+          question_id: row[0],
+          question_text: row[1]
+        })) || [];
         
         const questionIds = questions.map((q) => q.question_id);
         let optionsByQuestionId = new Map();
 
         if (questionIds.length > 0) {
-          const placeholders = questionIds.map(() => "?").join(",");
-          const options = db.prepare(
+          const placeholders = questionIds.join(",");
+          const options = db.exec(
             `SELECT id as option_id, question_id, option_text
              FROM options
              WHERE question_id IN (${placeholders})
              ORDER BY id`
-          ).all(...questionIds);
+          )[0]?.values?.map(row => ({
+            option_id: row[0],
+            question_id: row[1],
+            option_text: row[2]
+          })) || [];
           optionsByQuestionId = options.reduce((map, row) => {
             if (!map.has(row.question_id)) map.set(row.question_id, []);
             map.get(row.question_id).push({ id: row.option_id, option_text: row.option_text });
@@ -37,21 +44,28 @@ function registerQuestions(app, db) {
         return res.json({ questions: result });
       }
       
-      const questions = db.prepare(
-        `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ? ORDER BY RANDOM()`
-      ).all(quizId);
+      const questions = db.exec(
+        `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ${quizId} ORDER BY RANDOM()`
+      )[0]?.values?.map(row => ({
+        question_id: row[0],
+        question_text: row[1]
+      })) || [];
 
       const questionIds = questions.map((q) => q.question_id);
       let optionsByQuestionId = new Map();
 
       if (questionIds.length > 0) {
-        const placeholders = questionIds.map(() => "?").join(",");
-        const options = db.prepare(
+        const placeholders = questionIds.join(",");
+        const options = db.exec(
           `SELECT id as option_id, question_id, option_text
            FROM options
            WHERE question_id IN (${placeholders})
            ORDER BY id`
-        ).all(...questionIds);
+        )[0]?.values?.map(row => ({
+          option_id: row[0],
+          question_id: row[1],
+          option_text: row[2]
+        })) || [];
         optionsByQuestionId = options.reduce((map, row) => {
           if (!map.has(row.question_id)) map.set(row.question_id, []);
           map.get(row.question_id).push({ id: row.option_id, option_text: row.option_text });
@@ -81,21 +95,28 @@ function registerQuestions(app, db) {
         return res.status(400).json({ error: "Invalid answers format" });
       }
 
-      const questions = db.prepare(
-        `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ?`
-      ).all(quizId);
+      const questions = db.exec(
+        `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ${quizId}`
+      )[0]?.values?.map(row => ({
+        question_id: row[0],
+        question_text: row[1]
+      })) || [];
 
       const questionIds = questions.map((q) => q.question_id);
       let correctAnswers = new Map();
       
       if (questionIds.length > 0) {
-        const placeholders = questionIds.map(() => "?").join(",");
-        const correctOptions = db.prepare(
+        const placeholders = questionIds.join(",");
+        const correctOptions = db.exec(
           `SELECT question_id, id as option_id, option_text
            FROM options
            WHERE question_id IN (${placeholders}) AND is_correct = 1
            ORDER BY question_id`
-        ).all(...questionIds);
+        )[0]?.values?.map(row => ({
+          question_id: row[0],
+          option_id: row[1],
+          option_text: row[2]
+        })) || [];
         
         correctAnswers = correctOptions.reduce((map, row) => {
           map.set(row.question_id, {
