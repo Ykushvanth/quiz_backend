@@ -7,9 +7,9 @@ const { registerQuestions } = require("./questions");
 
 app.use(express.json());
 
-// CORS configuration
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://quiz-frontend-delta-one.vercel.app");
+  const origin = process.env.FRONTEND_URL || "*";
+  res.header("Access-Control-Allow-Origin", origin);
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.sendStatus(200);
@@ -17,10 +17,9 @@ app.use((req, res, next) => {
 });
 
 const dbPath = path.join(__dirname, "quiz_questions.db");
-
 let db = null;
 
-const initializeDBAndServer = async () => {
+const initDB = async () => {
   try {
     const SQL = await initSqlJs();
     
@@ -28,36 +27,35 @@ const initializeDBAndServer = async () => {
     if (fs.existsSync(dbPath)) {
       dbData = fs.readFileSync(dbPath);
     } else {
-      console.log("Database file not found, creating new one");
+      console.log("DB not found, creating new");
       dbData = new Uint8Array(0);
     }
     
     db = new SQL.Database(dbData);
-    
     registerQuestions(app, db);
 
-    const saveDatabase = () => {
+    const saveDB = () => {
       try {
         const data = db.export();
         fs.writeFileSync(dbPath, data);
       } catch (e) {
-        console.log(`Error saving database: ${e.message}`);
+        console.log(`Save error: ${e.message}`);
       }
     };
 
     process.on('SIGINT', () => {
-      saveDatabase();
+      saveDB();
       process.exit(0);
     });
 
     process.on('SIGTERM', () => {
-      saveDatabase();
+      saveDB();
       process.exit(0);
     });
 
     const port = process.env.PORT || 3001;
     app.listen(port, () => {
-      console.log(`Server Running at http://localhost:${port}`);
+      console.log(`Server running at http://localhost:${port}`);
     });
   } catch (e) {
     console.log(`DB Error: ${e.message}`);
@@ -65,4 +63,4 @@ const initializeDBAndServer = async () => {
   }
 };
 
-initializeDBAndServer();
+initDB();
