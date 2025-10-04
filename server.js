@@ -1,29 +1,25 @@
 const express = require("express");
 const path = require("path");
-
-const { open } = require("sqlite");
-const sqlite3 = require("sqlite3");
+const Database = require("better-sqlite3");
 const app = express();
 const { registerQuestions } = require("./questions");
 
-// Middleware
 app.use(express.json());
 
 const dbPath = path.join(__dirname, "quiz_questions.db");
 
 let db = null;
 
-const initializeDBAndServer = async () => {
+const initializeDBAndServer = () => {
   try {
-    db = await open({
-      filename: dbPath,
-      driver: sqlite3.Database,
-    });
-    // Register routes after DB is ready
+    db = new Database(dbPath);
+    db.pragma("journal_mode = WAL");
+    
     registerQuestions(app, db);
 
-    app.listen(3001, () => {
-      console.log("Server Running at http://localhost:3001");
+    const port = process.env.PORT || 3001;
+    app.listen(port, () => {
+      console.log(`Server Running at http://localhost:${port}`);
     });
   } catch (e) {
     console.log(`DB Error: ${e.message}`);

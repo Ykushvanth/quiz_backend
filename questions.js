@@ -6,23 +6,21 @@ function registerQuestions(app, db) {
       
       if (sessionId) {
         const seed = parseInt(sessionId) + parseInt(quizId);
-        const questions = await db.all(
-          `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ? ORDER BY (id * ?) % 1000`,
-          [quizId, seed]
-        );
+        const questions = db.prepare(
+          `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ? ORDER BY (id * ?) % 1000`
+        ).all(quizId, seed);
         
         const questionIds = questions.map((q) => q.question_id);
         let optionsByQuestionId = new Map();
 
         if (questionIds.length > 0) {
           const placeholders = questionIds.map(() => "?").join(",");
-          const options = await db.all(
+          const options = db.prepare(
             `SELECT id as option_id, question_id, option_text
              FROM options
              WHERE question_id IN (${placeholders})
-             ORDER BY id`,
-            questionIds
-          );
+             ORDER BY id`
+          ).all(...questionIds);
           optionsByQuestionId = options.reduce((map, row) => {
             if (!map.has(row.question_id)) map.set(row.question_id, []);
             map.get(row.question_id).push({ id: row.option_id, option_text: row.option_text });
@@ -39,23 +37,21 @@ function registerQuestions(app, db) {
         return res.json({ questions: result });
       }
       
-      const questions = await db.all(
-        `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ? ORDER BY RANDOM()`,
-        quizId
-      );
+      const questions = db.prepare(
+        `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ? ORDER BY RANDOM()`
+      ).all(quizId);
 
       const questionIds = questions.map((q) => q.question_id);
       let optionsByQuestionId = new Map();
 
       if (questionIds.length > 0) {
         const placeholders = questionIds.map(() => "?").join(",");
-        const options = await db.all(
+        const options = db.prepare(
           `SELECT id as option_id, question_id, option_text
            FROM options
            WHERE question_id IN (${placeholders})
-           ORDER BY id`,
-          questionIds
-        );
+           ORDER BY id`
+        ).all(...questionIds);
         optionsByQuestionId = options.reduce((map, row) => {
           if (!map.has(row.question_id)) map.set(row.question_id, []);
           map.get(row.question_id).push({ id: row.option_id, option_text: row.option_text });
@@ -85,23 +81,21 @@ function registerQuestions(app, db) {
         return res.status(400).json({ error: "Invalid answers format" });
       }
 
-      const questions = await db.all(
-        `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ?`,
-        quizId
-      );
+      const questions = db.prepare(
+        `SELECT id as question_id, question_text FROM questions WHERE quiz_id = ?`
+      ).all(quizId);
 
       const questionIds = questions.map((q) => q.question_id);
       let correctAnswers = new Map();
       
       if (questionIds.length > 0) {
         const placeholders = questionIds.map(() => "?").join(",");
-        const correctOptions = await db.all(
+        const correctOptions = db.prepare(
           `SELECT question_id, id as option_id, option_text
            FROM options
            WHERE question_id IN (${placeholders}) AND is_correct = 1
-           ORDER BY question_id`,
-          questionIds
-        );
+           ORDER BY question_id`
+        ).all(...questionIds);
         
         correctAnswers = correctOptions.reduce((map, row) => {
           map.set(row.question_id, {
