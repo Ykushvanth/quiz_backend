@@ -18,6 +18,7 @@
   "dependencies": {
     "better-sqlite3": "^11.10.0",
     "express": "^5.1.0",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "sql.js": "^1.13.0"
   }
 }
