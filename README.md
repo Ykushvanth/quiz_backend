@@ -784,7 +784,7 @@ copies or substantial portions of the Software.
 
 For issues and questions:
 - Open an issue on GitHub
-- Email: support@quizportal.com
+- Email: kushvanthyalamanchi2004@gmail.com
 
 ## Acknowledgments
 
@@ -795,3 +795,4 @@ For issues and questions:
 ---
 
 **Note:** This backend is designed to work with the Quiz Portal React frontend. Ensure both are running for full functionality.
+
